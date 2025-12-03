@@ -1,4 +1,5 @@
-"""This file contains the Microphone class.
+"""
+This file contains the Microphone class.
 
 Computes the sound pressure at specified location.
 
@@ -15,6 +16,7 @@ import numpy as np
 import numpy.typing as npt
 from dolfinx import default_scalar_type, geometry
 from dolfinx.fem import Function
+from dolfinx.mesh import Mesh
 
 
 class Microphone:
@@ -40,9 +42,8 @@ class Microphone:
 
     def __init__(
         self,
-        domain: geometry.Mesh,
+        domain: Mesh,
         microphone_position: npt.ArrayLike,
-        pressure_function: Function,
     ):
         """
         Initialize microphone(s).
@@ -61,7 +62,6 @@ class Microphone:
         self._position = np.asarray(
             microphone_position, dtype=self._domain.geometry.x.dtype
         ).reshape(3, -1)
-        self._pressure_function = pressure_function
         self._local_cells, self._local_position = self.compute_local_microphones()
 
     def compute_local_microphones(
@@ -96,7 +96,9 @@ class Microphone:
         )
 
     def listen(
-        self, recompute_collisions: bool = False
+        self,
+        pressure_function: Function,
+        recompute_collisions: bool = False
     ) -> npt.NDArray[np.complexfloating]:
         """
         Compute sound pressure using pressure function at specified mic locations.
@@ -104,7 +106,7 @@ class Microphone:
         Args
         ----
         recompute_collisions :
-            Bool to determine whether or no to recompute mic collisions
+            Bool to determine whether or not to recompute mic collisions
 
         Returns
         -------
@@ -114,6 +116,6 @@ class Microphone:
         if recompute_collisions:
             self._local_cells, self._local_position = self.compute_local_microphones()
         if len(self._local_cells) > 0:
-            return self._pressure_function.eval(self._local_position, self._local_cells)
+            return pressure_function.eval(self._local_position, self._local_cells)
         else:
             return np.zeros(0, dtype=default_scalar_type)

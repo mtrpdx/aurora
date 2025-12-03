@@ -174,7 +174,7 @@ def gmsh_box(
     # Synchronize OpenCascade representation with gmsh model
     model.occ.synchronize()
 
-    # Add physical tag for sphere
+    # Add physical tag for box
     model.add_physical_group(dim=3, tags=[box], tag=1)
 
     # Embed all sub-entities from the GMSH model into the sphere and tag
