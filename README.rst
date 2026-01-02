@@ -34,11 +34,24 @@ aurora
 ======
 
 
-    Add a short description here!
+    Computational Morphogenesis via Topological Optimization and Acoustic Simulation in Python 
 
 
-A longer description of your project goes here...
+This package demonstrates the ability of open-source tools such as FEniCSx to solve problems related to recent research in the field of computational morphogenesis.
 
+Installation
+============
+
+Navigate to the project aurora root directory in the terminal and install with pip:  ``python3 -m pip install -e .``
+
+Usage
+=====
+
+mesher.py
+---------
+
+direct_frequency_response.py
+----------------------------
 
 .. _pyscaffold-notes:
 

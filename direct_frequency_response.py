@@ -1,4 +1,14 @@
-"""This file runs the direct frequency response and plots the output.
+"""
+This file runs the direct frequency response and plots the output.
+
+The direct frequency response in acoustics is the calculation of any
+response solution to a given frequency. The frequency source is provided
+by a point source (scifem.PointSource). Sound pressure is calculated
+by instantiating a microphone.
+
+The frequency response is calculated using the finite element method via
+the dolfinx package.
+
 - Define (import) geometry as mesh data
 - Define frequency steps
 - Define air characteristics
@@ -77,6 +87,7 @@ def main():
         "--bcs",
         choices=[
             "delany_bazley",
+            "perfect_absorption",
             "rigid",
             "pml",
         ],
@@ -98,11 +109,10 @@ def main():
     bcs = args.bcs
 
     # =========================================================
-    # PART 1: SETUP (Static)
+    # PART 1: SETUP
     # =========================================================
 
     # Import the gmsh generated mesh
-
     mesh_data = gmshio.read_from_msh(
         os.path.join(MESH_DIR, input_mesh), MPI.COMM_WORLD, 0, gdim=3
     )
@@ -181,9 +191,9 @@ def main():
 
     if domain.comm.rank == 0:
         coords = domain.geometry.x
-        print(f"Mesh X range: {np.min(coords[:, 0])} to {np.max(coords[:, 0])}")
-        print(f"Mesh Y range: {np.min(coords[:, 1])} to {np.max(coords[:, 1])}")
-        print(f"Mesh Z range: {np.min(coords[:, 2])} to {np.max(coords[:, 2])}")
+        console.print(f"Mesh X range: {np.min(coords[:, 0])} to {np.max(coords[:, 0])}")
+        console.print(f"Mesh Y range: {np.min(coords[:, 1])} to {np.max(coords[:, 1])}")
+        console.print(f"Mesh Z range: {np.min(coords[:, 2])} to {np.max(coords[:, 2])}")
 
     # Solver setup
     ksp = PETSc.KSP().create(domain.comm)
@@ -230,6 +240,13 @@ def main():
         # solver.u.x.scatter_forward()
         p_a.x.scatter_forward()
 
+        # save acoustic field to file every 100 Hz
+        if freq[nf] % 100 == 0:
+            fileout = os.path.join(OUTPUT_DIR, "air_solution" + str(freq[nf]) + ".xdmf")
+            with XDMFFile(domain.comm, fileout, "w") as xdmf:
+                xdmf.write_mesh(domain)
+                xdmf.write_function(p_a)
+
         p_f_local = microphone.listen(p_a)
         p_f = domain.comm.gather(p_f_local, root=0)
 
@@ -238,6 +255,14 @@ def main():
             p_mic[nf] = np.hstack(p_f)
 
     if domain.comm.rank == 0:
+
+        Re_p = np.real(p_mic)
+        Im_p = np.imag(p_mic)
+        stackarr = np.column_stack((freq, Re_p, Im_p))
+        np.savetxt(
+            os.path.join(OUTPUT_DIR, "p_mic_spectrum.csv"), stackarr, delimiter=","
+        )
+
         import matplotlib.pyplot as plt
 
         fig = plt.figure(figsize=(25, 8))
@@ -249,17 +274,6 @@ def main():
         plt.ylim([0, 90])
         plt.legend()
         plt.show()
-
-    # from multiprocessing import Pool
-
-    # nf = range(0, len(freq))
-
-    # if __name__== '__main__':
-    #     print("Computing...")
-    #     pool = Pool(3)
-    #     p_mic = pool.map(frequency_loop.nf)
-    #     pool.close()
-    #     pool.join()
 
 
 if __name__ == "__main__":

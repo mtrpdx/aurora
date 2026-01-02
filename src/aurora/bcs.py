@@ -1,6 +1,11 @@
 import numpy as np
 
 
+def perfect_absorption_layer(rho0, c):
+    Z_s = rho0 * c
+    return Z_s
+
+
 # Impedance calculation
 def delany_bazley_layer(f, rho0, c, sigma, d):
     X = rho0 * f / sigma
